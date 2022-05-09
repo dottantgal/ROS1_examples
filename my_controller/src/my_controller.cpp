@@ -30,7 +30,8 @@
 #define POSEPRECISION 0.2f
 #define STATE0 "[STATE MACHINE] State changed to Adjust Heading"
 #define STATE1 "[STATE MACHINE] State changed to Straight To The Goal"
-#define STATE2 "[STATE MACHINE] State changed to Done \"GOAL REACHED\""
+#define STATE2 "[STATE MACHINE] State changed to Obstacle Avoidance"
+#define STATE3 "[STATE MACHINE] State changed to Done \"GOAL REACHED\""
 
 using namespace std;
 
@@ -40,6 +41,7 @@ public:
     : goal_(passedGoal)
   {
     ChangeStateMachine(0);
+    obstacleWarn_ = false;
     odomSub_ = myNodeH_.subscribe<nav_msgs::Odometry>(
       "/odom", 5, &MyController::OdomCallback, this);
     laserSub_ = myNodeH_.subscribe<sensor_msgs::LaserScan>(
@@ -82,6 +84,7 @@ private:
   double roll_, pitch_, yaw_;
   float diffX_, diffY_, angleToGoal_, yawError_, posError_;
   int state_;
+  bool obstacleWarn_;
   void OdomCallback(const nav_msgs::Odometry::ConstPtr &odomMsg);
   void LaserCallback(const sensor_msgs::LaserScan::ConstPtr &laserMsg);
   void MakePairDistances(const sensor_msgs::LaserScan::ConstPtr &laserMsg);
@@ -100,6 +103,7 @@ void MyController::ChangeStateMachine(int newState)
   if( newState == 0) cout << STATE0 << endl;
   else if ( newState == 1) cout << STATE1 << endl;
   else if ( newState == 2) cout << STATE2 << endl;
+  else if ( newState == 3) cout << STATE3 << endl;
 
 }
 
@@ -109,6 +113,7 @@ void MyController::LaserCallback(
 {
   int index = 0;
   int indexOld = 0;
+  int obstacleCount = 0;
   for (auto val : robotRegions)
   {
     std::vector<double> myVector;
@@ -116,6 +121,7 @@ void MyController::LaserCallback(
     {
       if (laserMsg->ranges[index] < 2.0f)
       {
+        obstacleCount++;
         myVector.push_back(laserMsg->ranges[index]);
       }
     }
@@ -129,6 +135,10 @@ void MyController::LaserCallback(
     }
     indexOld = index;
   }
+  if(obstacleCount>0) obstacleWarn_ = true;
+  else obstacleWarn_ = false;
+  if(DEBUGP)
+    cout << "obstacleWarn_ " << obstacleWarn_ << endl;
 }
 
 // obstacle avoidance task
@@ -195,6 +205,8 @@ void MyController::DoAvoidance()
       robotTwist_.linear.x = 0.2;
       robotTwist_.angular.z = 0.0;
     }
+    if(obstacleWarn_==false)
+      ChangeStateMachine(0);
     twistPub_.publish(robotTwist_);
 }
 
@@ -220,7 +232,7 @@ void MyController::ManageYawToGoal()
   }
 
   if ( abs(yawError_) > YAWPRECISION )
-    robotTwist_.angular.z = (yawError_> 0) ? -0.3 : 0.3;
+    robotTwist_.angular.z = (yawError_> 0) ? -0.5 : 0.5;
   else
   {
     robotTwist_.angular.z = 0.0;
@@ -239,18 +251,22 @@ void MyController::ManageGoStraight()
   yawError_ = NormalizeAngleToGoal(angleToGoal_ - yaw_);
   posError_ = sqrt( pow((goal_.y - pose_.y), 2) + pow((goal_.x - pose_.x), 2) );
 
-  if (posError_ > POSEPRECISION)
+  if(obstacleWarn_==false)
   {
-    robotTwist_.linear.x = 0.3;
-    robotTwist_.angular.z = 0.0;
-  }
-  else if (posError_ <= POSEPRECISION)
-  {
-    ChangeStateMachine(2);
-  }
-
+    if (posError_ > POSEPRECISION)
+    {
+      robotTwist_.linear.x = 0.3;
+      robotTwist_.angular.z = 0.0;
+    }
+    else if (posError_ <= POSEPRECISION)
+    {
+      ChangeStateMachine(3);
+    }
   if ( abs(yawError_) > (YAWPRECISION) )
     ChangeStateMachine(0);
+  }
+  else if(obstacleWarn_==true)
+    ChangeStateMachine(2);
 
   twistPub_.publish(robotTwist_);
 }
@@ -283,6 +299,8 @@ void MyController::OdomCallback(const nav_msgs::Odometry::ConstPtr &odomMsg)
   else if(state_ == 1)
     ManageGoStraight();
   else if(state_ == 2)
+    DoAvoidance();
+  else if(state_ == 3)
     DoneTask();
 }
 
