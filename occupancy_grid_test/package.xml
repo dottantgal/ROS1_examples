@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>occupancy_grid_test</name>
+  <version>0.0.0</version>
+  <description>The occupancy_grid_test package</description>
+  <maintainer email="user@todo.todo">Antonio Mauro Galiano</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  
+
+  <export>
+  </export>
+</package>
