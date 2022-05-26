@@ -307,22 +307,15 @@ void OccupancyGridTest::LaserCallback(
     }
     // Condition
     // y - endPointY = slopM * (x - endPointX);
-    if( (0<=startX) &&
-      (startX<=myGrid_.info.width) &&
-      (0<=endPointXint) &&
-      (endPointXint<=myGrid_.info.width) &&
-      (0<=startY) && 
-      (startY<=myGrid_.info.height) && 
-      (0<=endPointYint) && 
-      (endPointYint<=myGrid_.info.height) )
+    /*std::cout << "startX=" << startX << 
+    " | endPointXint=" << endPointXint << std::endl;
+    std::cout << "startY=" << startY << 
+      " | endPointYint=" << endPointYint << std::endl;*/
+    if( (endPointXint>0) && (endPointYint>0) )
     {
-      /*std::cout << "startX=" << startX << 
-      " | endPointXint=" << endPointXint << std::endl;
-      std::cout << "startY=" << startY << 
-        " | endPointYint=" << endPointYint << std::endl;*/
-      for (int x=startX; x<=endPointXint; x++) 
+      for (int x=startX; x<endPointXint && x<myGrid_.info.width; x++) 
       { 
-        for (int y=startY; y<=endPointYint; y++) 
+        for (int y=startY; y<endPointYint && y<myGrid_.info.height; y++) 
         { 
           //std::cout << "(y-endPointY)=" << (y-endPointY) << std::endl;
           //std::cout << "(slopM * (x - endPointX))=" << (slopM * (x - endPointX)) << std::endl;
@@ -339,12 +332,100 @@ void OccupancyGridTest::LaserCallback(
             } 
         } 
       }
-      if(laserRange<3.0)
-      {
-        indexGrid = endPointXint + (gridWidth_ * endPointYint);
-                  //std::cout << indexGrid << std::endl;
-        if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 100;
+    }
+    else if ((endPointXint<0) && (endPointYint>0))
+    {
+      for (int x=startX; x>endPointXint && x<myGrid_.info.width; x--) 
+      { 
+        for (int y=startY; y<endPointYint && y<myGrid_.info.height; y++) 
+        { 
+          //std::cout << "(y-endPointY)=" << (y-endPointY) << std::endl;
+          //std::cout << "(slopM * (x - endPointX))=" << (slopM * (x - endPointX)) << std::endl;
+          float test;
+          test = (y-endPointYint)-(slopM * (x - endPointXint));
+          //std::cout << "Test=" << test << std::endl;
+          if( abs(test) < 0.3)
+          {
+                //std::cout << "(" << x << "," << y << ")" << std::endl;
+                indexGrid = x + (gridWidth_ * y);
+                //std::cout << indexGrid << std::endl;
+                if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 0; 
+                //break; 
+            } 
+        } 
+      }   
+    }
+    /*else if ((endPointXint>0) && (endPointYint<0))
+    {
+      for (int x=startX; x<endPointXint && x<myGrid_.info.width; x++) 
+      { 
+        for (int y=startY; y>endPointYint && y<myGrid_.info.height; y--) 
+        { 
+          //std::cout << "(y-endPointY)=" << (y-endPointY) << std::endl;
+          //std::cout << "(slopM * (x - endPointX))=" << (slopM * (x - endPointX)) << std::endl;
+          float test;
+          test = (y-endPointYint)-(slopM * (x - endPointXint));
+          //std::cout << "Test=" << test << std::endl;
+          if( abs(test) < 0.3)
+          {
+                //std::cout << "(" << x << "," << y << ")" << std::endl;
+                indexGrid = x + (gridWidth_ * y);
+                //std::cout << indexGrid << std::endl;
+                if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 0; 
+                //break; 
+            } 
+        } 
       }
+    }
+    else if ((endPointXint<0) && (endPointYint>0))
+    {
+      for (int x=startX; x>endPointXint && x<myGrid_.info.width; x--) 
+      { 
+        for (int y=startY; y<endPointYint && y<myGrid_.info.height; y++) 
+        { 
+          //std::cout << "(y-endPointY)=" << (y-endPointY) << std::endl;
+          //std::cout << "(slopM * (x - endPointX))=" << (slopM * (x - endPointX)) << std::endl;
+          float test;
+          test = (y-endPointYint)-(slopM * (x - endPointXint));
+          //std::cout << "Test=" << test << std::endl;
+          if( abs(test) < 0.3)
+          {
+                //std::cout << "(" << x << "," << y << ")" << std::endl;
+                indexGrid = x + (gridWidth_ * y);
+                //std::cout << indexGrid << std::endl;
+                if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 0; 
+                //break; 
+            } 
+        } 
+      }   
+    }
+    else if( (endPointXint<0) && (endPointYint<0) )
+    {
+      for (int x=startX; x>endPointXint && x<myGrid_.info.width; x--) 
+      { 
+        for (int y=startY; y>endPointYint && y<myGrid_.info.height; y--) 
+        { 
+          //std::cout << "(y-endPointY)=" << (y-endPointY) << std::endl;
+          //std::cout << "(slopM * (x - endPointX))=" << (slopM * (x - endPointX)) << std::endl;
+          float test;
+          test = (y-endPointYint)-(slopM * (x - endPointXint));
+          //std::cout << "Test=" << test << std::endl;
+          if( abs(test) < 0.3)
+          {
+                //std::cout << "(" << x << "," << y << ")" << std::endl;
+                indexGrid = x + (gridWidth_ * y);
+                //std::cout << indexGrid << std::endl;
+                if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 0; 
+                //break; 
+            } 
+        } 
+      }
+    }*/
+    if(laserRange<3.0)
+    {
+      indexGrid = endPointXint + (gridWidth_ * endPointYint);
+                //std::cout << indexGrid << std::endl;
+      if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 100;
     }
   }
   gridPub_.publish(myGrid_);
