@@ -252,16 +252,19 @@ void OccupancyGridTest::LaserCallback(
   float rayBeam, rayAngle, rayX, rayY, rayAngleOdom;
   float endPointX, endPointY;
   float laserRange;
+  float slopM;
   int indexGrid;
+
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener(tfBuffer);
   geometry_msgs::TransformStamped transformStamped;
   geometry_msgs::PointStamped  transformedPt;
-  //fill(myGrid_.data.begin(), myGrid_.data.end(), -1);
+  
+  fill(myGrid_.data.begin(), myGrid_.data.end(), -1);
   for(int index=0; index<720; index++)
   {
-    if(std::isinf(laserMsg->ranges[index])) laserRange=5.0;
-    else laserRange = laserMsg->ranges[index];
+    if( std::isinf(laserMsg->ranges[index]) || (laserMsg->ranges[index]>=3.0) ) laserRange=3.0;
+    else if(laserMsg->ranges[index]<3.0) laserRange = laserMsg->ranges[index];
     //std::cout << laserRange << std::endl;
     rayAngle = ANGLEMIN + (index * ANGLEINC);
     rayX = laserRange * cos (rayAngle);
@@ -292,32 +295,56 @@ void OccupancyGridTest::LaserCallback(
     int startY = static_cast<int>(robotPose_.y/gridResolution_);
     int endPointXint = static_cast<int>(endPointX/gridResolution_);
     int endPointYint = static_cast<int>(endPointY/gridResolution_);
-    //std::cout << "endPointXint= " << endPointXint << 
-    //  " | startX=" << startX << std::endl;
-    m*x + n = y 
-    m =  tan(angle)
-    n = startPoint_Y - (tan ( angle) * startPoint_X )
     
-
-    for (int x=startX; x<=endPointXint; x++) 
-    { 
-      for (int y=startY; y<=endPointYint; y++) 
+    try
+    {
+      slopM = static_cast<float>(static_cast<float>(endPointYint - startY) / static_cast<float>(endPointXint - startX));
+      //std::cout << "slop M = " << slopM << std::endl;
+    }
+    catch(...)
+    {
+      std::cout << "not possible" << std::endl;
+    }
+    // Condition
+    // y - endPointY = slopM * (x - endPointX);
+    if( (0<=startX) &&
+      (startX<=myGrid_.info.width) &&
+      (0<=endPointXint) &&
+      (endPointXint<=myGrid_.info.width) &&
+      (0<=startY) && 
+      (startY<=myGrid_.info.height) && 
+      (0<=endPointYint) && 
+      (endPointYint<=myGrid_.info.height) )
+    {
+      /*std::cout << "startX=" << startX << 
+      " | endPointXint=" << endPointXint << std::endl;
+      std::cout << "startY=" << startY << 
+        " | endPointYint=" << endPointYint << std::endl;*/
+      for (int x=startX; x<=endPointXint; x++) 
       { 
-          //std::cout << "(" << x << "," << y << ")" << std::endl;
-          //(y2-y1)x+(x2-x1)y+(x1y2-x2y1) = 0
-          float testValue;
-          testValue = ((endPointYint-startY)*x + (endPointXint-startX)*y +
-              (startX*endPointYint - endPointXint*startY));
-        // std::cout << "Test value= " << testValue << std::endl;
-          if (abs(testValue)<1000000)
-          { 
-              //std::cout << "(" << x << "," << y << ")" << std::endl;
-              indexGrid = x + (gridWidth_ * y);
-              //std::cout << indexGrid << std::endl;
-              if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 0; 
-              //break; 
-          } 
-      } 
+        for (int y=startY; y<=endPointYint; y++) 
+        { 
+          //std::cout << "(y-endPointY)=" << (y-endPointY) << std::endl;
+          //std::cout << "(slopM * (x - endPointX))=" << (slopM * (x - endPointX)) << std::endl;
+          float test;
+          test = (y-endPointYint)-(slopM * (x - endPointXint));
+          //std::cout << "Test=" << test << std::endl;
+          if( abs(test) < 0.3)
+          {
+                //std::cout << "(" << x << "," << y << ")" << std::endl;
+                indexGrid = x + (gridWidth_ * y);
+                //std::cout << indexGrid << std::endl;
+                if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 0; 
+                //break; 
+            } 
+        } 
+      }
+      if(laserRange<3.0)
+      {
+        indexGrid = endPointXint + (gridWidth_ * endPointYint);
+                  //std::cout << indexGrid << std::endl;
+        if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 100;
+      }
     }
   }
   gridPub_.publish(myGrid_);
