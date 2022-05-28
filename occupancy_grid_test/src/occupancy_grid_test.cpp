@@ -260,11 +260,11 @@ void OccupancyGridTest::LaserCallback(
   geometry_msgs::TransformStamped transformStamped;
   geometry_msgs::PointStamped  transformedPt;
   
-  fill(myGrid_.data.begin(), myGrid_.data.end(), -1);
+  //fill(myGrid_.data.begin(), myGrid_.data.end(), -1);
   for(int index=0; index<720; index++)
   {
-    if( std::isinf(laserMsg->ranges[index]) || (laserMsg->ranges[index]>=3.0) ) laserRange=3.0;
-    else if(laserMsg->ranges[index]<3.0) laserRange = laserMsg->ranges[index];
+    if( std::isinf(laserMsg->ranges[index]) || (laserMsg->ranges[index]>=2.0) ) laserRange=2.0;
+    else if(laserMsg->ranges[index]<2.0) laserRange = laserMsg->ranges[index];
     //std::cout << laserRange << std::endl;
     rayAngle = ANGLEMIN + (index * ANGLEINC);
     rayX = laserRange * cos (rayAngle);
@@ -298,8 +298,8 @@ void OccupancyGridTest::LaserCallback(
     
     try
     {
-      slopM = static_cast<float>(static_cast<float>(endPointYint - startY) / static_cast<float>(endPointXint - startX));
-      //std::cout << "slop M = " << slopM << std::endl;
+      slopM = (static_cast<float>(endPointYint - startY) / static_cast<float>(endPointXint - startX));
+     // std::cout << "index=" << index << " slop M= " << slopM << std::endl;
     }
     catch(...)
     {
@@ -311,11 +311,11 @@ void OccupancyGridTest::LaserCallback(
     " | endPointXint=" << endPointXint << std::endl;
     std::cout << "startY=" << startY << 
       " | endPointYint=" << endPointYint << std::endl;*/
-    if( (endPointXint>0) && (endPointYint>0) )
+    if ( (endPointXint>startX) && (endPointYint>startY))
     {
-      for (int x=startX; x<endPointXint && x<myGrid_.info.width; x++) 
+      for (int x=startX; x<=endPointXint && x<myGrid_.info.width; x++) 
       { 
-        for (int y=startY; y<endPointYint && y<myGrid_.info.height; y++) 
+        for (int y=startY; y<=endPointYint && y<myGrid_.info.height; y++) 
         { 
           //std::cout << "(y-endPointY)=" << (y-endPointY) << std::endl;
           //std::cout << "(slopM * (x - endPointX))=" << (slopM * (x - endPointX)) << std::endl;
@@ -324,16 +324,16 @@ void OccupancyGridTest::LaserCallback(
           //std::cout << "Test=" << test << std::endl;
           if( abs(test) < 0.3)
           {
-                //std::cout << "(" << x << "," << y << ")" << std::endl;
-                indexGrid = x + (gridWidth_ * y);
-                //std::cout << indexGrid << std::endl;
-                if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 0; 
-                //break; 
-            } 
+            //std::cout << "(" << x << "," << y << ")" << std::endl;
+            indexGrid = x + (gridWidth_ * y);
+            //std::cout << indexGrid << std::endl;
+            if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 0; 
+            //break; 
+          } 
         } 
       }
     }
-    else if ((endPointXint<0) && (endPointYint>0))
+    else if ((endPointXint<startX) && (endPointYint>startY))
     {
       for (int x=startX; x>endPointXint && x<myGrid_.info.width; x--) 
       { 
@@ -355,7 +355,7 @@ void OccupancyGridTest::LaserCallback(
         } 
       }   
     }
-    /*else if ((endPointXint>0) && (endPointYint<0))
+    else if ((endPointXint>startX) && (endPointYint<startY))
     {
       for (int x=startX; x<endPointXint && x<myGrid_.info.width; x++) 
       { 
@@ -377,29 +377,7 @@ void OccupancyGridTest::LaserCallback(
         } 
       }
     }
-    else if ((endPointXint<0) && (endPointYint>0))
-    {
-      for (int x=startX; x>endPointXint && x<myGrid_.info.width; x--) 
-      { 
-        for (int y=startY; y<endPointYint && y<myGrid_.info.height; y++) 
-        { 
-          //std::cout << "(y-endPointY)=" << (y-endPointY) << std::endl;
-          //std::cout << "(slopM * (x - endPointX))=" << (slopM * (x - endPointX)) << std::endl;
-          float test;
-          test = (y-endPointYint)-(slopM * (x - endPointXint));
-          //std::cout << "Test=" << test << std::endl;
-          if( abs(test) < 0.3)
-          {
-                //std::cout << "(" << x << "," << y << ")" << std::endl;
-                indexGrid = x + (gridWidth_ * y);
-                //std::cout << indexGrid << std::endl;
-                if(indexGrid>=0 && indexGrid<250000) myGrid_.data[indexGrid] = 0; 
-                //break; 
-            } 
-        } 
-      }   
-    }
-    else if( (endPointXint<0) && (endPointYint<0) )
+    else if( (endPointXint<startX) && (endPointYint<startY) )
     {
       for (int x=startX; x>endPointXint && x<myGrid_.info.width; x--) 
       { 
@@ -420,8 +398,8 @@ void OccupancyGridTest::LaserCallback(
             } 
         } 
       }
-    }*/
-    if(laserRange<3.0)
+    }
+    if(laserRange<2.0)
     {
       indexGrid = endPointXint + (gridWidth_ * endPointYint);
                 //std::cout << indexGrid << std::endl;
